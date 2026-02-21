@@ -1,8 +1,13 @@
 # Stage 1: Build
-FROM node:22-alpine AS builder
+FROM node:22-bookworm-slim AS builder
 
-# Install system dependencies for node-gyp and pnpm/turbo
-RUN apk add --no-cache python3 make g++ git
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm and turbo
 RUN npm install -g pnpm@10.22.0 turbo@2.7.3
@@ -12,33 +17,42 @@ WORKDIR /app
 # Copy root config files
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 
-# Copy packages structure (excluding what's in .dockerignore)
+# Copy packages structure
 COPY packages ./packages
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Fix for memory issues and exit code 254
+# We increase the max memory and use a more stable install command
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Copy everything else (if any root scripts are needed)
+# Install dependencies
+RUN pnpm install --frozen-lockfile --aggregate-output
+
+# Copy the rest (configs, etc)
 COPY . .
 
 # Build the project
 RUN pnpm build
 
 # Stage 2: Production
-FROM node:22-alpine
+FROM node:22-bookworm-slim
 
-RUN apk add --no-cache tini python3 make g++
+# Install production dependencies
+RUN apt-get update && apt-get install -y \
+    tini \
+    python3 \
+    make \
+    g++ \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/node
 
-# Copy built files and production node_modules
-# Note: We copy n8n cli and its dependencies
+# Copy built files
 COPY --from=builder /app/packages/cli /home/node/packages/cli
 COPY --from=builder /app/node_modules /home/node/node_modules
 COPY --from=builder /app/packages/core /home/node/packages/core
 COPY --from=builder /app/packages/workflow /home/node/packages/workflow
 COPY --from=builder /app/packages/nodes-base /home/node/packages/nodes-base
-# Copy frontend if needed for the UI
 COPY --from=builder /app/packages/frontend /home/node/packages/frontend
 
 # Setup environment
@@ -46,8 +60,8 @@ ENV NODE_ENV=production
 ENV N8N_PORT=5678
 EXPOSE 5678
 
-# Use tini as entrypoint
-ENTRYPOINT ["/sbin/tini", "--"]
+# Use tini
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Set binary path
 ENV PATH="/home/node/packages/cli/bin:${PATH}"
