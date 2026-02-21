@@ -4,7 +4,7 @@ services:
     env: docker
     repo: https://github.com/guzman2205/n8n.arreglao360
     branch: master
-    plan: starter # Change to pro if needed for more RAM
+    plan: starter # IMPORTANT: n8n is very heavy to build. If it fails with OOM, upgrade to 'pro'.
     healthCheckPath: /healthz
     envVars:
       - key: N8N_PORT

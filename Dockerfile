@@ -15,16 +15,20 @@ RUN corepack enable && corepack prepare pnpm@10.22.0 --activate
 WORKDIR /app
 
 # Copy root config files
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+
+# Copy patches needed for pnpm install
+COPY patches ./patches
 
 # Copy packages structure
 COPY packages ./packages
 
-# Memory optimizations
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Optimized memory for Render (512MB RAM)
+# We use a lower max-old-space-size to force GC and --child-concurrency=1 to save memory
+ENV NODE_OPTIONS="--max-old-space-size=400"
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --no-optional --aggregate-output
+# Install dependencies with strict memory limits
+RUN pnpm install --frozen-lockfile --no-optional --ignore-engines --aggregate-output --child-concurrency=1 --prefer-offline
 
 # Copy the rest
 COPY . .
