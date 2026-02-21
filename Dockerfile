@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:20-bookworm-slim AS builder
+FROM node:22.14-bookworm-slim AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm and turbo
-RUN npm install -g pnpm@9.x turbo@2.7.3
+RUN npm install -g pnpm@10.22.0 turbo@2.7.3
 
 WORKDIR /app
 
@@ -20,11 +20,14 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 # Copy packages structure
 COPY packages ./packages
 
-# Fix for memory issues and exit code 254
+# Memory and performance optimizations
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN pnpm config set network-timeout 1000000
+RUN pnpm config set child-concurrency 1
 
-# Install dependencies with verbose logging
-RUN pnpm install --frozen-lockfile --loglevel verbose
+# Install dependencies
+# We use --no-frozen-lockfile as a fallback to see if it provides better error messages or bypasses strictness issues
+RUN pnpm install --frozen-lockfile --aggregate-output --loglevel notice
 
 # Copy the rest
 COPY . .
@@ -33,9 +36,8 @@ COPY . .
 RUN pnpm build
 
 # Stage 2: Production
-FROM node:20-bookworm-slim
+FROM node:22.14-bookworm-slim
 
-# Install production dependencies
 RUN apt-get update && apt-get install -y \
     tini \
     python3 \
