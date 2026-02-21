@@ -20,8 +20,6 @@ docker
 LICENSE
 LICENSE_EE
 README.mdncig
-pnpm-lock.yaml
-pnpm-workspace.yaml
 turbo.json
 renovate.jsonnore-rev
 SECURITY.md
