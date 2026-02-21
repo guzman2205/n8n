@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:22-bookworm-slim AS builder
+FROM node:20-bookworm-slim AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm and turbo
-RUN npm install -g pnpm@10.22.0 turbo@2.7.3
+RUN npm install -g pnpm@9.x turbo@2.7.3
 
 WORKDIR /app
 
@@ -21,20 +21,19 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages ./packages
 
 # Fix for memory issues and exit code 254
-# We increase the max memory and use a more stable install command
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --aggregate-output
+# Install dependencies with verbose logging
+RUN pnpm install --frozen-lockfile --loglevel verbose
 
-# Copy the rest (configs, etc)
+# Copy the rest
 COPY . .
 
 # Build the project
 RUN pnpm build
 
 # Stage 2: Production
-FROM node:22-bookworm-slim
+FROM node:20-bookworm-slim
 
 # Install production dependencies
 RUN apt-get update && apt-get install -y \
