@@ -20,11 +20,11 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 # Copy packages structure
 COPY packages ./packages
 
-# Extreme memory optimizations
-ENV NODE_OPTIONS="--max-old-space-size=8192"
+# Memory optimizations for pnpm
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Install dependencies with no optional and ignore engines fallback
-RUN pnpm install --frozen-lockfile --no-optional --ignore-engines --aggregate-output
+# Install dependencies (no optional to reduce memory/native builds)
+RUN pnpm install --frozen-lockfile --no-optional --aggregate-output
 
 # Copy the rest
 COPY . .
