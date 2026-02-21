@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:22.14-bookworm-slim AS builder
+FROM node:22-bookworm AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -20,14 +20,11 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 # Copy packages structure
 COPY packages ./packages
 
-# Memory and performance optimizations
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN pnpm config set network-timeout 1000000
-RUN pnpm config set child-concurrency 1
+# Extreme memory optimizations
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 
-# Install dependencies
-# We use --no-frozen-lockfile as a fallback to see if it provides better error messages or bypasses strictness issues
-RUN pnpm install --frozen-lockfile --aggregate-output --loglevel notice
+# Install dependencies with no optional and ignore engines fallback
+RUN pnpm install --frozen-lockfile --no-optional --ignore-engines --aggregate-output
 
 # Copy the rest
 COPY . .
@@ -36,7 +33,7 @@ COPY . .
 RUN pnpm build
 
 # Stage 2: Production
-FROM node:22.14-bookworm-slim
+FROM node:22-bookworm-slim
 
 RUN apt-get update && apt-get install -y \
     tini \
