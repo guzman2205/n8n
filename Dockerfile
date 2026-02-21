@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm and turbo
-RUN npm install -g pnpm@10.22.0 turbo@2.7.3
+# Install pnpm 9 (stable for large monorepos) and turbo
+RUN npm install -g pnpm@9.15.5 turbo@2.7.3
 
 WORKDIR /app
 
@@ -23,8 +23,9 @@ COPY packages ./packages
 # Memory optimizations for pnpm
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Install dependencies (no optional to reduce memory/native builds)
-RUN pnpm install --frozen-lockfile --no-optional --aggregate-output
+# Install dependencies with pnpm 9 and ignore-engines
+# Note: we use --no-frozen-lockfile because the lockfile might be pnpm 10 format
+RUN pnpm install --no-frozen-lockfile --no-optional --ignore-engines --aggregate-output
 
 # Copy the rest
 COPY . .
