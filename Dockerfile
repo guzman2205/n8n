@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:22-bookworm AS builder
+FROM node:22-bullseye AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm 9 (stable for large monorepos) and turbo
-RUN npm install -g pnpm@9.15.5 turbo@2.7.3
+# Use corepack for pnpm management
+RUN corepack enable && corepack prepare pnpm@10.22.0 --activate
 
 WORKDIR /app
 
@@ -20,12 +20,11 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 # Copy packages structure
 COPY packages ./packages
 
-# Memory optimizations for pnpm
+# Memory optimizations
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Install dependencies with pnpm 9 and ignore-engines
-# Note: we use --no-frozen-lockfile because the lockfile might be pnpm 10 format
-RUN pnpm install --no-frozen-lockfile --no-optional --ignore-engines --aggregate-output
+# Install dependencies
+RUN pnpm install --frozen-lockfile --no-optional --aggregate-output
 
 # Copy the rest
 COPY . .
@@ -34,7 +33,7 @@ COPY . .
 RUN pnpm build
 
 # Stage 2: Production
-FROM node:22-bookworm-slim
+FROM node:22-bullseye-slim
 
 RUN apt-get update && apt-get install -y \
     tini \
