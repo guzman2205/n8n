@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: n8n-custom
+    env: docker
+    repo: https://github.com/guzman2205/n8n.arreglao360
+    branch: master
+    plan: starter # Change to pro if needed for more RAM
+    healthCheckPath: /healthz
+    envVars:
+      - key: N8N_PORT
+        value: 5678
+      - key: NODE_ENV
+        value: production
+    mounts:
+      - name: n8n-data
+        mountPath: /home/node/.n8n
+    disk:
+      name: n8n-data
+      sizeGB: 1
+      mountPath: /home/node/.n8n
